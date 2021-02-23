@@ -1,0 +1,261 @@
+from tkinter import Label, Tk, Toplevel, Entry, Button, X, Y, TOP, BOTTOM, BOTH, LEFT, RIGHT, LabelFrame
+from tkinter import filedialog
+from PIL import Image, ImageTk, UnidentifiedImageError
+from os import getcwd, system
+from sys import argv
+
+icon_name = "Images/icon.ico"
+default_path = "."
+
+screen1 = Tk()
+screen1.title("Image Viewer")
+screen1.iconbitmap(icon_name)
+screen1.state("zoomed")
+
+temp_file = open("colors.txt", 'r')
+colours = temp_file.read().split("\n")
+temp_file.close()
+color_count = 0
+frame_size = 5
+
+image_frame = LabelFrame(
+    screen1, bg=colours[color_count], pady=frame_size, padx=frame_size)
+
+img_names = argv[1:]
+
+file_types = (
+    ("All Files", "*.*"),
+    ("png Files", "*.png"),
+    ("Jpg Files", ("*.jpg", "*.jpeg")),
+    ("Gif Files", "*.gif"),
+    ("Icon Files", "*.ico"),
+    ("Bitmap Images", "*.bmp")
+
+)
+
+
+def preferences():
+    global preferences_tab
+
+    preferences_tab = Toplevel(screen1)
+    preferences_tab.iconbitmap(icon_name)
+    preferences_tab.title("Preferences")
+    preferences_tab.geometry("300x120")
+
+    def next_color():
+        global colours
+        global color_count
+        global image_frame
+
+        if color_count == len(colours)-1:
+            color_count = 0
+
+        else:
+            color_count += 1
+
+        image_frame.config(bg=colours[color_count])
+        color_name.config(text=colours[color_count])
+
+    def previous_color():
+        global colours
+        global color_count
+        global image_frame
+
+        if color_count == 0:
+            color_count = len(colours) - 1
+
+        else:
+            color_count -= 1
+
+        image_frame.config(bg=colours[color_count])
+        color_name.config(text=colours[color_count])
+
+    def increase_width():
+        global frame_size
+        frame_size = int(size_label.get())
+        image_frame.config(padx=frame_size, pady=frame_size)
+
+    size_label = Entry(preferences_tab)
+    size_label.insert(0, frame_size)
+    size_msg = Label(preferences_tab, text="Thickness of the frame ")
+    n_button = Button(preferences_tab, text="Next colour",
+                      command=next_color, width=15, bg="lightblue")
+    p_button = Button(preferences_tab, text="Previous colour",
+                      command=previous_color, width=15, bg="lightblue")
+    c_size = Button(preferences_tab, text="Change Thickness",
+                    command=increase_width, bg="lightblue")
+    color_name = Label(
+        preferences_tab, text=colours[color_count], bg='pink', fg='blue')
+
+    size_msg.place(x=0, y=0)
+    size_label.place(x=150, y=0)
+    c_size.place(x=0, y=25)
+    n_button.place(x=0, y=55)
+    p_button.place(x=0, y=85)
+    color_name.place(x=150, y=70)
+
+
+def fullscreen(screen_name):
+    screen_name.attributes("-fullscreen", True)
+    fullscreen_button.config(image=ef_img)
+    fullscreen_button.config(command=lambda: exit_fullscreen(screen1))
+
+
+def exit_fullscreen(screen_name):
+    screen_name.attributes("-fullscreen", False)
+    fullscreen_button.config(image=full_img)
+    fullscreen_button.config(command=lambda: fullscreen(screen1))
+
+
+def check_size(filename):
+    file_size = filename.size
+    width = file_size[0]
+    height = file_size[1]
+    if width > 1250:
+        width = width // 2
+        height = height // 2
+        size = (width, height)
+        return size
+
+    elif height > 700:
+        width = width // 2
+        height = height // 2
+        size = (width, height)
+        return size
+
+    else:
+        return file_size
+
+
+def next_img():
+    global img_list
+    global img_count
+    global img_label1
+
+    if img_count == len(img_list)-1:
+        img_count = 0
+
+    else:
+        img_count += 1
+
+    img_label1.config(image=img_list[img_count])
+    status.config(text=f"Image {img_count+1} of {len(img_list)}")
+
+
+def previous_img():
+    global img_list
+    global img_count
+    global img_label1
+
+    if img_count == 0:
+        img_count = len(img_list)-1
+
+    else:
+        img_count -= 1
+
+    img_label1.config(image=img_list[img_count])
+    status.config(text=f"Image {img_count+1} of {len(img_list)}")
+
+
+selected_img = None
+
+
+def browse():
+    global img_label1
+    global selected_img
+    global img_list
+    global size
+    global status
+    global img_count
+    global icon_name
+
+    selected_img = filedialog.askopenfilename(
+        title="Select an Image", filetypes=file_types, initialdir=default_path)
+    try:
+        selected_img = Image.open(selected_img)
+        selected_img = selected_img.resize(check_size(selected_img))
+        selected_img = selected_img.resize(check_size(selected_img))
+        selected_img = ImageTk.PhotoImage(
+            selected_img.resize(check_size(selected_img)))
+        img_list.append(selected_img)
+        img_count = len(img_list) - 1
+        status.config(text=f"Image {img_count + 1} of {len(img_list)}")
+        img_label1.config(image=selected_img)
+
+    except UnidentifiedImageError:
+        temp = Toplevel(screen1)
+        temp.iconbitmap(icon_name)
+        temp.geometry("700x48")
+        extension = selected_img.split(".")[-1]
+        msg = f"Cannot open {selected_img}"
+        msg2 = f"Unknown image extension .{extension}"
+        msg = Label(temp, text=msg, font=("Ariel", 10, "bold"))
+        msg2 = Label(temp, text=msg2, font=("Ariel", 10, "bold"))
+        msg.place(x=0, y=0)
+        msg2.place(x=0, y=25)
+
+    except AttributeError:
+        pass
+
+
+size = (1250, 600)
+
+cancel_img = Image.open(
+    "Images/cancel.bmp").resize((40, 25))
+Next_img = Image.open(
+    "Images/Next.bmp").resize((40, 25))
+p_img = Image.open(
+    "Images/Previous.bmp").resize((40, 25))
+browse_img = Image.open(
+    "Images/Browse.bmp").resize((40, 25))
+full_img = Image.open(
+    "Images/fullscreen.bmp").resize((40, 25))
+ef_img = Image.open(
+    "Images/exitfullscreen.bmp").resize((40, 25))
+
+cancel_img = ImageTk.PhotoImage(cancel_img)
+Next_img = ImageTk.PhotoImage(Next_img)
+p_img = ImageTk.PhotoImage(p_img)
+browse_img = ImageTk.PhotoImage(browse_img)
+full_img = ImageTk.PhotoImage(full_img)
+ef_img = ImageTk.PhotoImage(ef_img)
+
+img_list = img_names
+img_count = 0
+
+if img_list != []:
+    for img in img_names:
+        startup_img = Image.open(img)
+        startup_img = startup_img.resize(check_size(startup_img))
+        startup_img = ImageTk.PhotoImage(
+            startup_img.resize(check_size(startup_img)))
+        img_list.append(startup_img)
+
+    img_label1 = Label(image_frame, image=img_list[img_count])
+    image_frame.pack(expand=True)
+
+else:
+    initial_img = Image.open(
+        "Images/None.bmp")
+    initial_img = ImageTk.PhotoImage(initial_img)
+    img_label1 = Label(image_frame, image=initial_img)
+    image_frame.pack(expand=True)
+
+exit_button = Button(screen1, image=cancel_img,command=screen1.quit, bg="black")
+fullscreen_button = Button(screen1, image=full_img,command=lambda: fullscreen(screen1), bg="black")
+preference_button = Button(screen1, text="Preferences",command=preferences, fg='white', bg='black')
+browse_button = Button(screen1, image=browse_img,command=browse, bg="black")
+status = Label(screen1, text=f"Image {img_count+1} of {len(img_list)}", font=("Ariel", 15, "bold"), bg="lightgreen")
+next_button = Button(screen1, image=Next_img, command=next_img, bg="black")
+previous_button = Button(screen1, image=p_img,command=previous_img, bg="black")
+
+exit_button.place(x=1300, y=10)
+img_label1.pack(fill=BOTH, expand=True)
+fullscreen_button.place(x=1300, y=50)
+preference_button.place(x=1290, y=85)
+status.pack(fill=X, side=BOTTOM)
+next_button.pack(side=RIGHT, padx=10)
+previous_button.pack(side=LEFT, padx=15)
+browse_button.pack(side=LEFT, padx=575)
+
+screen1.mainloop()
